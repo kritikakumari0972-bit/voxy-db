@@ -34,6 +34,7 @@ jobs:
           cp -a /tmp/voxydb-source/. .
           rm -rf .voxydb-import
           rm -f .github/workflows/import-source.yml
+          rm -f .github/workflows/ci.yml
 
       - name: Run project checks
         run: npm run check
