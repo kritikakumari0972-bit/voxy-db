@@ -105,15 +105,13 @@ async function main() {
   const databases = extractDatabases(parseJsonOutput(listed.stdout));
   let database = databases.find((item) => (item.name || item.database_name) === databaseName);
 
-  if (!database) {
+  let databaseId = database?.uuid || database?.database_id || database?.id;
+  if (!databaseId) {
     console.log("Creating the Asia-Pacific D1 database...");
     execute(["d1", "create", databaseName, "--location", "apac", "--update-config", "--binding", bindingName]);
-    const refreshed = execute(["d1", "list", "--json"], { capture: true });
-    database = extractDatabases(parseJsonOutput(refreshed.stdout))
-      .find((item) => (item.name || item.database_name) === databaseName);
+    const updatedConfig = JSON.parse(await readFile(configPath, "utf8"));
+    databaseId = updatedConfig.d1_databases?.find((item) => item.binding === bindingName)?.database_id;
   }
-
-  const databaseId = database?.uuid || database?.database_id || database?.id;
   if (!databaseId) throw new Error("Could not resolve the D1 database ID after listing/creation.");
   await setDatabaseId(databaseId);
   await persistD1Binding();
