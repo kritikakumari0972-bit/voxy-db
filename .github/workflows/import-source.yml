@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   import-source:
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'chore: stage VoxyDB v0.5.1 source import')
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'stage VoxyDB v0.5.1 source import')
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
