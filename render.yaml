@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: voxy-db
+    runtime: node
+    plan: free
+    buildCommand: npm run render:check
+    startCommand: npm start
+    healthCheckPath: /_render/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLOUDFLARE_WORKER_URL
+        sync: false
