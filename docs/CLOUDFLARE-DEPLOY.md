@@ -4,17 +4,17 @@ This workflow deploys the live VoxyDB backend. It creates or reuses the D1 datab
 
 ## 1. Add GitHub Actions secrets
 
-Open the repository's **Settings → Secrets and variables → Actions → New repository secret** and add:
+Before dispatching the workflow, open Cloudflare **Workers & Pages** and enable your account's `workers.dev` subdomain if it is not already enabled. Create a Google OAuth 2.0 client of type **Web application** in Google Cloud.\n\nOpen the repository's **Settings → Secrets and variables → Actions → New repository secret** and add:
 
 | Secret name | Value |
 |---|---|
 | `CLOUDFLARE_API_TOKEN` | Account API token with Workers product **Admin** (needed to create the first Worker) and D1 **Edit** access. Scope it to the one Cloudflare account where possible. |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
-| `GOOGLE_CLIENT_ID` | Google OAuth 2.0 Web Client ID |
+| `GOOGLE_CLIENT_ID` | Google OAuth 2.0 Web Client ID ending in `.apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_SECRET` | Matching Google OAuth Web Client secret |
 | `DRIVE_TOKEN_ENCRYPTION_KEY` | Optional. A random secret of at least 32 characters; only add it to enable the separate Google Drive mirror. |
 
-Do not paste these values into chat, commit them to Git, or put them in a source file.
+Do not paste these values into chat, commit them to Git, or put them in a source file. Keep the Cloudflare token account-scoped and avoid granting unrelated access.
 
 Cloudflare permissions change as its Developer Platform roles evolve. The token needs permission to create a Worker on first deployment, write the D1 database/migrations, and deploy Worker secrets. After the Worker exists, its deployment permission can be narrowed to the VoxyDB Worker.
 
