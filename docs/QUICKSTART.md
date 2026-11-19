@@ -22,7 +22,7 @@ To deploy later after a code update:
 npm run deploy
 ```
 
-This applies pending remote D1 migrations before deploying the Worker.
+This applies pending remote D1 migrations before deploying the Worker. To deploy from GitHub Actions instead, follow [`CLOUDFLARE-DEPLOY.md`](CLOUDFLARE-DEPLOY.md); that workflow creates or reuses D1, records its ID in `wrangler.jsonc`, and deploys the Worker after source validation.
 
 ## 2. Create a database and API key
 
