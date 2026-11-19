@@ -49,7 +49,7 @@ The guided flow:
 7. Optionally generates and stores the Drive refresh-token encryption key.
 8. Prints the exact Google OAuth callback URLs to register in the Google Cloud OAuth Web client.
 
-Create a Google OAuth client of type **Web application** before starting setup. After setup prints the callback URI, add it under the client's **Authorized redirect URIs**, then open your Worker URL and sign in with Google. If the OAuth consent screen is in testing mode, add your Google account as a test user. To use Drive mirroring, enable the Google Drive API in the same Google Cloud project before connecting Drive from the Storage page. If setup is interrupted while entering credentials, rerun `npm run setup`; it reuses the D1 database and reapplies migrations safely.
+Create a Google OAuth client of type **Web application** before starting setup. After setup prints the callback URI, add it under the client's **Authorized redirect URIs**, then open your Worker URL and sign in with Google. If the OAuth consent screen is in testing mode, add your Google account as a test user. To use Drive mirroring, enable the Google Drive API in the same Google Cloud project before connecting Drive from the Storage page. If setup is interrupted while entering credentials, rerun `npm run setup`; it reuses the D1 database and reapplies migrations safely.\n\nPrefer deploying from GitHub without a local terminal? Follow [`docs/CLOUDFLARE-DEPLOY.md`](docs/CLOUDFLARE-DEPLOY.md) to add account/OAuth values as GitHub Actions secrets and run the manual **Deploy VoxyDB to Cloudflare** workflow.
 
 Later updates:
 
