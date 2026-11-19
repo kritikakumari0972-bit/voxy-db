@@ -40,4 +40,4 @@ jobs:
         run: npm run check
 
       - name: Create/reuse D1 and deploy Worker
-        run: node scripts/deploy-cloudflare-ci.mjs
+        run: npm run deploy:ci
