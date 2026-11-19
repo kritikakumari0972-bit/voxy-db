@@ -27,13 +27,13 @@ function execute(args, { input, capture = false, safeFailure = false } = {}) {
   if (result.error) throw new Error(`Could not run Wrangler: ${result.error.message}`);
   if (result.status !== 0) {
     const detail = safeFailure ? "" : (result.stderr || result.stdout || "").trim();
-    throw new Error(`Wrangler command failed: wrangler ${args.join(" ")}${detail ? `\\n${detail}` : ""}`);
+    throw new Error(`Wrangler command failed: wrangler ${args.join(" ")}${detail ? `\n${detail}` : ""}`);
   }
   return { stdout: result.stdout || "", stderr: result.stderr || "" };
 }
 
 function parseJsonOutput(output) {
-  const normalized = output.replace(/\\u001b\\[[0-9;]*m/g, "").trim();
+  const normalized = output.replace(/\u001b\[[0-9;]*m/g, "").trim();
   for (let index = 0; index < normalized.length; index += 1) {
     if (normalized[index] !== "[" && normalized[index] !== "{") continue;
     try { return JSON.parse(normalized.slice(index)); }
@@ -55,14 +55,14 @@ async function setDatabaseId(databaseId) {
   if (!binding) throw new Error(`wrangler.jsonc is missing the ${bindingName} D1 binding.`);
   const changed = binding.database_id !== databaseId;
   binding.database_id = databaseId;
-  if (changed) await writeFile(configPath, `${JSON.stringify(config, null, 2)}\\n`);
+  if (changed) await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
   return changed;
 }
 
 function putSecret(name, value) {
   if (!value) return;
   // Pass the secret over stdin; never include it in command-line arguments or logs.
-  execute(["secret", "put", name], { input: `${value}\\n`, capture: true, safeFailure: true });
+  execute(["secret", "put", name], { input: `${value}\n`, capture: true, safeFailure: true });
   console.log(`Stored Cloudflare Worker secret: ${name}`);
 }
 
@@ -73,7 +73,7 @@ function git(args, { quiet = false } = {}) {
     stdio: quiet ? "pipe" : "inherit",
   });
   if (result.error || result.status !== 0) {
-    throw new Error(`Git command failed: git ${args.join(" ")}${result.stderr ? `\\n${result.stderr.trim()}` : ""}`);
+    throw new Error(`Git command failed: git ${args.join(" ")}${result.stderr ? `\n${result.stderr.trim()}` : ""}`);
   }
   return result.stdout || "";
 }
@@ -123,8 +123,8 @@ async function main() {
 
   console.log("Deploying the VoxyDB Worker...");
   const firstDeploy = execute(["deploy"], { capture: true });
-  const deploymentOutput = `${firstDeploy.stdout}\\n${firstDeploy.stderr}`;
-  const workerUrl = deploymentOutput.match(/https:\\/\\/[a-z0-9.-]+\\.workers\\.dev/i)?.[0] || null;
+  const deploymentOutput = `${firstDeploy.stdout}\n${firstDeploy.stderr}`;
+  const workerUrl = deploymentOutput.match(/https:\/\/[a-z0-9.-]+\.workers\.dev/i)?.[0] || null;
 
   console.log("Configuring Google Sign-In secrets...");
   putSecret("GOOGLE_CLIENT_ID", googleClientId);
@@ -145,6 +145,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(`\\nVoxyDB Cloudflare deployment stopped: ${error.message}`);
+  console.error(`\nVoxyDB Cloudflare deployment stopped: ${error.message}`);
   process.exitCode = 1;
 });
