@@ -65,6 +65,7 @@ impl FileDb {
         let wal_path = directory.join("data.wal");
         let mut wal = OpenOptions::new()
             .create(true)
+            .truncate(false)
             .read(true)
             .write(true)
             .open(wal_path)?;

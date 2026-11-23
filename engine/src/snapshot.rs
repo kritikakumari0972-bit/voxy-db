@@ -6,14 +6,11 @@ use std::{
     fs::{self, File, OpenOptions},
     io::{self, Read, Write},
     path::{Path, PathBuf},
-    sync::atomic::{AtomicU64, Ordering},
-    time::{SystemTime, UNIX_EPOCH},
 };
 
 const MAGIC: &[u8; 8] = b"VOXYDB01";
 const FORMAT_VERSION: u32 = 1;
 const HEADER_BYTES: usize = 24;
-static SNAPSHOT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, thiserror::Error)]
 pub enum SnapshotError {
@@ -31,23 +28,38 @@ pub enum SnapshotError {
     InvalidLength,
     #[error("snapshot checksum mismatch")]
     ChecksumMismatch,
-    #[error("snapshot filename cannot be generated from the system clock")]
-    InvalidFilename,
+    #[error("snapshot generation counter is exhausted")]
+    GenerationOverflow,
+}
+
+fn parse_generation(name: &str) -> Option<u64> {
+    name.strip_prefix("snapshot-")?
+        .strip_suffix(".vxs")?
+        .parse()
+        .ok()
+}
+
+fn newest_snapshot(directory: &Path) -> Result<Option<(u64, PathBuf)>, SnapshotError> {
+    let mut newest: Option<(u64, PathBuf)> = None;
+    for entry in fs::read_dir(directory)? {
+        let entry = entry?;
+        if !entry.file_type()?.is_file() {
+            continue;
+        }
+        let name = entry.file_name();
+        let Some(generation) = parse_generation(&name.to_string_lossy()) else {
+            continue;
+        };
+        if newest.as_ref().is_none_or(|(current, _)| generation > *current) {
+            newest = Some((generation, entry.path()));
+        }
+    }
+    Ok(newest)
 }
 
 pub fn load_latest(directory: &Path) -> Result<Option<BTreeMap<String, Value>>, SnapshotError> {
-    let mut snapshots = Vec::new();
-    for entry in fs::read_dir(directory)? {
-        let entry = entry?;
-        let name = entry.file_name();
-        let name = name.to_string_lossy();
-        if name.starts_with("snapshot-") && name.ends_with(".vxs") && entry.file_type()?.is_file() {
-            snapshots.push(entry.path());
-        }
-    }
-    snapshots.sort();
-    match snapshots.pop() {
-        Some(path) => load(&path).map(Some),
+    match newest_snapshot(directory)? {
+        Some((_, path)) => load(&path).map(Some),
         None => Ok(None),
     }
 }
@@ -56,18 +68,22 @@ pub fn write_new(
     directory: &Path,
     values: &BTreeMap<String, Value>,
 ) -> Result<PathBuf, SnapshotError> {
+    let generation = newest_snapshot(directory)?
+        .map(|(generation, _)| generation)
+        .unwrap_or(0)
+        .checked_add(1)
+        .ok_or(SnapshotError::GenerationOverflow)?;
+
     let payload = serde_json::to_vec(values)?;
     let length = u64::try_from(payload.len()).map_err(|_| SnapshotError::InvalidLength)?;
     let checksum = crc32fast::hash(&payload);
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|_| SnapshotError::InvalidFilename)?
-        .as_nanos();
-    let sequence = SNAPSHOT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-    let stem = format!("snapshot-{now:039}-{}-{sequence:020}", std::process::id());
-    let final_path = directory.join(format!("{stem}.vxs"));
-    let temp_path = directory.join(format!(".{stem}.tmp"));
+    let filename = format!("snapshot-{generation:020}.vxs");
+    let final_path = directory.join(&filename);
+    let temp_path = directory.join(format!(".snapshot-{generation:020}.tmp"));
 
+    // A leftover temporary file was never installed as a snapshot and can be
+    // safely removed before retrying this generation.
+    let _ = fs::remove_file(&temp_path);
     let write_result = (|| -> Result<(), SnapshotError> {
         let mut file = OpenOptions::new().write(true).create_new(true).open(&temp_path)?;
         file.write_all(MAGIC)?;
@@ -111,6 +127,7 @@ fn load(path: &Path) -> Result<BTreeMap<String, Value>, SnapshotError> {
     if payload_len != file_len - HEADER_BYTES as u64 {
         return Err(SnapshotError::InvalidLength);
     }
+
     let payload_size = usize::try_from(payload_len).map_err(|_| SnapshotError::InvalidLength)?;
     let mut payload = Vec::new();
     payload.try_reserve_exact(payload_size).map_err(|_| SnapshotError::InvalidLength)?;
