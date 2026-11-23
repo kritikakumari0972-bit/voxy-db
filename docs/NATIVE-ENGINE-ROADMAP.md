@@ -20,20 +20,21 @@ native engine is developed and validated separately.
 
 ## Milestones
 
-1. **Embedded WAL engine (current):** durable single-process key/value store,
-   replay, torn-tail repair and checksummed frames.
-2. **Segment storage:** immutable data segments, manifests, compaction and
-   snapshot creation.
-3. **Indexes and query layer:** key indexes, secondary indexes, filtering,
-   pagination and query planning.
-4. **Transactions:** atomic multi-key batches, MVCC and isolation tests.
-5. **Server and SDK:** authenticated network API, connection management,
+1. **Embedded WAL engine:** durable single-process key/value store and replay.
+2. **Checkpoint and ordered key index (current):** checksummed snapshots,
+   checkpoint recovery, WAL reset and bounded prefix scans.
+3. **Segment storage:** immutable sorted data segments, manifests and
+   compaction with crash-safe installation.
+4. **Query layer:** secondary JSON-field indexes, filtering, sorting and
+   pagination.
+5. **Transactions:** atomic multi-key batches, MVCC and isolation tests.
+6. **Server and SDK:** authenticated network API, connection management,
    TypeScript/Python clients and observability.
-6. **Provider connectors:** snapshot export/import and verified restore for
+7. **Provider connectors:** snapshot export/import and verified restore for
    GitHub, Drive, Hugging Face and S3-compatible object storage.
-7. **Distributed cluster:** shard placement, Raft-based metadata/leadership,
+8. **Distributed cluster:** shard placement, Raft-based metadata/leadership,
    replication, rebalancing and node recovery.
-8. **Production hardening:** fuzzing, fault injection, benchmarks, security
+9. **Production hardening:** fuzzing, fault injection, benchmarks, security
    review, backup drills and migration tooling.
 
 ## Non-goals and honest guarantees

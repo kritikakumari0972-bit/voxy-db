@@ -1,34 +1,39 @@
 # VoxyDB Embedded Engine (experimental)
 
 This crate is the first step toward a native VoxyDB storage engine. It is an
-embedded, single-process key/value store backed by an append-only write-ahead
-log (WAL).
+embedded, single-process key/value store backed by a checksummed append-only
+write-ahead log (WAL) and versioned snapshots.
 
 ## Current guarantees
 
 - A successful mutation is appended and synced before the in-memory index changes.
-- The log is replayed on open.
-- An incomplete final frame is treated as a torn tail and truncated safely.
-- A checksum mismatch in a complete frame is reported as corruption; it is not
-  silently discarded.
-- Values are JSON objects/scalars supported by serde_json.
+- The newest snapshot is checksum-validated and loaded before WAL replay.
+- Checkpoints write and sync a new snapshot before truncating the WAL.
+- If a process stops after snapshot creation but before WAL truncation, replaying
+  the old ordered log produces the same final state.
+- An incomplete final WAL frame is treated as a torn tail and truncated safely.
+- A checksum mismatch in a complete WAL frame or snapshot is reported as
+  corruption; it is not silently discarded.
+- Prefix scans use the ordered in-memory key index.
 
-## Current limitations
+## Basic use
 
-This is an experimental single-process engine, not a production distributed
-database. It has no multi-process locking, transactions across multiple keys,
-compaction, encryption, replication, query planner, or network server yet.
-Do not use it as the only copy of important data.
+Create a FileDb, call put/get, then use scan_prefix for ordered key scans.
+Call checkpoint periodically to write a recovery snapshot and reset the WAL.
 
 ## Run
 
-From this directory:
+From this directory, run cargo test, cargo fmt --check, and
+cargo clippy --all-targets -- -D warnings.
 
-```bash
-cargo test
-cargo fmt --check
-cargo clippy --all-targets -- -D warnings
-```
+## Current limitations
+
+This is experimental single-process storage, not a production distributed
+database. One process must own a database directory. It has no inter-process
+locking, atomic multi-key transactions, secondary JSON-field indexes, segment
+files, encryption, replication, or network server yet. Snapshots currently
+remain on disk as versioned recovery points; retention/garbage collection is
+still to be implemented.
 
 The runtime is deliberately separate from the existing Cloudflare Worker. The
 Worker currently uses D1 as its transactional source of truth; this crate does
