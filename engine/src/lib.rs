@@ -229,6 +229,45 @@ mod tests {
     }
 
     #[test]
+    fn snapshot_before_wal_reset_recovers_after_simulated_crash() {
+        let dir = tempfile::tempdir().unwrap();
+        {
+            let mut db = FileDb::open(dir.path()).unwrap();
+            db.put("account:1", json!({"balance":10})).unwrap();
+            db.put("account:1", json!({"balance":25})).unwrap();
+            // Simulate a process stopping after the snapshot is installed but
+            // before checkpoint truncates the existing WAL.
+            snapshot::write_new(db.directory(), &db.index).unwrap();
+            assert!(db.wal_size_bytes().unwrap() > 0);
+        }
+        let db = FileDb::open(dir.path()).unwrap();
+        assert_eq!(db.get("account:1").unwrap(), Some(json!({"balance":25})));
+    }
+
+    #[test]
+    fn opening_a_corrupt_latest_snapshot_fails_closed() {
+        let dir = tempfile::tempdir().unwrap();
+        {
+            let mut db = FileDb::open(dir.path()).unwrap();
+            db.put("item:1", json!({"value":"safe"})).unwrap();
+            db.checkpoint().unwrap();
+        }
+        let snapshot_path = fs::read_dir(dir.path()).unwrap()
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .find(|path| path.extension().is_some_and(|extension| extension == "vxs"))
+            .unwrap();
+        let mut bytes = fs::read(&snapshot_path).unwrap();
+        bytes[24] ^= 0x01;
+        fs::write(&snapshot_path, bytes).unwrap();
+
+        assert!(matches!(
+            FileDb::open(dir.path()),
+            Err(EngineError::Snapshot(SnapshotError::ChecksumMismatch))
+        ));
+    }
+
+    #[test]
     fn prefix_scan_is_sorted_and_limited() {
         let dir = tempfile::tempdir().unwrap();
         let mut db = FileDb::open(dir.path()).unwrap();
